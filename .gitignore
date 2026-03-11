@@ -1,0 +1,9 @@
+# Build artifacts
+.build/
+*.app/
+
+# SwiftPM
+.swiftpm/
+
+# Generated icons
+AppIcon.iconset/

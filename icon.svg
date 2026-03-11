@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667EEA"/>
+      <stop offset="100%" style="stop-color:#764BA2"/>
+    </linearGradient>
+    <linearGradient id="sparkle" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#E0D4FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background (macOS style) -->
+  <rect x="40" y="40" width="944" height="944" rx="220" ry="220" fill="url(#bg)"/>
+
+  <!-- Subtle inner shadow/glow -->
+  <rect x="40" y="40" width="944" height="944" rx="220" ry="220" fill="none" stroke="white" stroke-opacity="0.2" stroke-width="3"/>
+
+  <!-- Main sparkle/star - center -->
+  <path d="M512 280 L540 440 L700 468 L540 496 L512 656 L484 496 L324 468 L484 440 Z"
+        fill="url(#sparkle)" opacity="0.95"/>
+
+  <!-- Small sparkle - top right -->
+  <path d="M700 220 L712 280 L772 292 L712 304 L700 364 L688 304 L628 292 L688 280 Z"
+        fill="white" opacity="0.7"/>
+
+  <!-- Small sparkle - bottom left -->
+  <path d="M340 660 L352 720 L412 732 L352 744 L340 804 L328 744 L268 732 L328 720 Z"
+        fill="white" opacity="0.6"/>
+
+  <!-- Text cursor line -->
+  <rect x="496" y="690" width="32" height="120" rx="16" fill="white" opacity="0.85"/>
+</svg>
