@@ -23,6 +23,9 @@ struct FloatingPanelView: View {
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
                 .ignoresSafeArea()
 
+            Color.black.opacity(0.45)
+                .ignoresSafeArea()
+
             VStack(spacing: 0) {
                 // Header with selected text
                 headerSection

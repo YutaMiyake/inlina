@@ -4,6 +4,7 @@ import SwiftUI
 final class FloatingPanel: NSPanel {
     let selectedText: String?
     var onResult: ((String) -> Void)?
+    private var escapeMonitor: Any?
 
     init(selectedText: String?) {
         self.selectedText = selectedText
@@ -66,9 +67,23 @@ final class FloatingPanel: NSPanel {
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             animator().alphaValue = 1
         }
+
+        // Monitor Escape key globally (panel is not key window)
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            if event.keyCode == 53 { // Escape
+                self?.dismiss()
+                return nil
+            }
+            return event
+        }
     }
 
     func dismiss() {
+        if let monitor = escapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeMonitor = nil
+        }
+
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.15
             context.timingFunction = CAMediaTimingFunction(name: .easeIn)
