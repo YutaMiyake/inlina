@@ -20,24 +20,21 @@ struct InlinaApp: App {
 }
 
 struct MenuBarView: View {
-    @Environment(\.openWindow) private var openWindow
-    
+    @Environment(\.openSettings) private var openSettings
+
     var body: some View {
         Button("Activate inlina") {
             if let appDelegate = NSApp.delegate as? AppDelegate {
                 appDelegate.activateInlina()
             }
         }
-        
+
         Divider()
-        
+
         Button("Settings...") {
+            NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
-            if #available(macOS 14.0, *) {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-            } else {
-                NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-            }
+            openSettings()
         }
         .keyboardShortcut(",", modifiers: .command)
         

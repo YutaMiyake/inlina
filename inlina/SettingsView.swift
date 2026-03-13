@@ -25,6 +25,9 @@ struct SettingsView: View {
                 }
         }
         .frame(width: 500, height: 400)
+        .onDisappear {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 }
 
