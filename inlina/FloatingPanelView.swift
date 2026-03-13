@@ -10,6 +10,7 @@ struct FloatingPanelView: View {
     @State private var result: String?
     @State private var errorMessage: String?
     @State private var selectedAction: AIAction?
+    @FocusState private var isInputFocused: Bool
     @ObservedObject private var settings = SettingsStore.shared
 
     private let brandGradient = LinearGradient(
@@ -95,15 +96,58 @@ struct FloatingPanelView: View {
         .padding(.vertical, 10)
     }
 
+    // MARK: - Slash Search
+
+    private var isSlashSearch: Bool {
+        customPrompt.hasPrefix("/")
+    }
+
+    private var slashQuery: String {
+        String(customPrompt.dropFirst()).trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
+    private var filteredPrompts: [CustomPrompt] {
+        if isSlashSearch {
+            let query = slashQuery
+            if query.isEmpty { return settings.customPrompts }
+            return settings.customPrompts.filter {
+                $0.name.lowercased().contains(query)
+            }
+        }
+        return settings.customPrompts
+    }
+
     // MARK: - Action List
 
     private var actionGridSection: some View {
         VStack(spacing: 0) {
-            // Saved prompts list
-            if !settings.customPrompts.isEmpty {
+            // Input field at top
+            HStack(spacing: 8) {
+                Image(systemName: isSlashSearch ? "magnifyingglass" : "wand.and.stars")
+                    .foregroundStyle(brandGradient)
+                    .font(.system(size: 14))
+                    .frame(width: 20)
+
+                TextField("Type / to search or enter instruction...", text: $customPrompt)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                    .focused($isInputFocused)
+                    .onSubmit {
+                        handleSubmit()
+                    }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.primary.opacity(0.02))
+
+            Divider()
+                .opacity(0.3)
+
+            // Prompts list
+            if !filteredPrompts.isEmpty {
                 ScrollView {
                     VStack(spacing: 6) {
-                        ForEach(settings.customPrompts) { prompt in
+                        ForEach(filteredPrompts) { prompt in
                             Button {
                                 performAction(.custom(prompt.prompt))
                             } label: {
@@ -112,12 +156,12 @@ struct FloatingPanelView: View {
                                         .font(.system(size: 14))
                                         .foregroundStyle(brandGradient)
                                         .frame(width: 20)
-                                    
+
                                     Text(prompt.name.isEmpty ? "Untitled" : prompt.name)
                                         .font(.system(size: 13, weight: .medium))
                                         .lineLimit(1)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                    
+
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 10, weight: .semibold))
                                         .foregroundStyle(.tertiary)
@@ -138,30 +182,20 @@ struct FloatingPanelView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
+                    .padding(.bottom, 8)
                 }
-                
-                Divider()
-                    .opacity(0.3)
+            } else if isSlashSearch {
+                VStack {
+                    Spacer()
+                    Text("No matching prompts")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
             }
-            
-            // Inline custom prompt input
-            HStack(spacing: 8) {
-                Image(systemName: "wand.and.stars")
-                    .foregroundStyle(brandGradient)
-                    .font(.system(size: 14))
-                    .frame(width: 20)
-
-                TextField("Or type a custom instruction...", text: $customPrompt)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 13))
-                    .onSubmit {
-                        guard !customPrompt.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                        performAction(.custom(customPrompt))
-                    }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.primary.opacity(0.02))
+        }
+        .onAppear {
+            isInputFocused = true
         }
     }
 
@@ -179,6 +213,7 @@ struct FloatingPanelView: View {
                 TextField("Ask AI anything...", text: $customPrompt)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
+                    .focused($isInputFocused)
                     .onSubmit {
                         guard !customPrompt.trimmingCharacters(in: .whitespaces).isEmpty else { return }
                         performAction(.custom(customPrompt))
@@ -197,6 +232,9 @@ struct FloatingPanelView: View {
             .padding(.horizontal, 16)
 
             Spacer()
+        }
+        .onAppear {
+            isInputFocused = true
         }
     }
 
@@ -304,6 +342,20 @@ struct FloatingPanelView: View {
     }
 
     // MARK: - Actions
+
+    private func handleSubmit() {
+        let trimmed = customPrompt.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+
+        if isSlashSearch {
+            // Slash search: execute the first matching prompt
+            if let match = filteredPrompts.first {
+                performAction(.custom(match.prompt))
+            }
+        } else {
+            performAction(.custom(trimmed))
+        }
+    }
 
     private func performAction(_ action: AIAction) {
         guard let text = selectedText, !text.isEmpty else {

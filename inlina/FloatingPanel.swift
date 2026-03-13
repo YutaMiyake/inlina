@@ -11,7 +11,7 @@ final class FloatingPanel: NSPanel {
 
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 160),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -23,9 +23,8 @@ final class FloatingPanel: NSPanel {
         isOpaque = false
         hasShadow = true
 
-        // Critical: These settings keep the source app's selection intact.
-        // The panel floats above without stealing focus from the source app.
-        becomesKeyOnlyIfNeeded = true
+        // Text is captured before panel shows, so we can safely take focus.
+        becomesKeyOnlyIfNeeded = false
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
@@ -58,9 +57,10 @@ final class FloatingPanel: NSPanel {
         )
         setFrameOrigin(origin)
 
-        // Use orderFront instead of makeKeyAndOrderFront to avoid
-        // stealing focus from the source app (preserves text selection).
-        orderFrontRegardless()
+        // Text is already captured, so it's safe to activate and take focus
+        // for keyboard input in the text field.
+        NSApp.activate(ignoringOtherApps: true)
+        makeKeyAndOrderFront(nil)
         alphaValue = 0
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
@@ -68,11 +68,13 @@ final class FloatingPanel: NSPanel {
             animator().alphaValue = 1
         }
 
-        // Monitor Escape key globally (panel is not key window, so use global monitor)
-        escapeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        // Monitor Escape key (panel is now key window)
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == 53 { // Escape
                 self?.dismiss()
+                return nil
             }
+            return event
         }
     }
 
