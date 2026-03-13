@@ -68,13 +68,11 @@ final class FloatingPanel: NSPanel {
             animator().alphaValue = 1
         }
 
-        // Monitor Escape key globally (panel is not key window)
-        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        // Monitor Escape key globally (panel is not key window, so use global monitor)
+        escapeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             if event.keyCode == 53 { // Escape
                 self?.dismiss()
-                return nil
             }
-            return event
         }
     }
 
