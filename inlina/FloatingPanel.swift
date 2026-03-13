@@ -79,10 +79,7 @@ final class FloatingPanel: NSPanel {
     }
 
     func dismiss() {
-        if let monitor = escapeMonitor {
-            NSEvent.removeMonitor(monitor)
-            escapeMonitor = nil
-        }
+        cleanupMonitor()
 
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.15
@@ -91,6 +88,18 @@ final class FloatingPanel: NSPanel {
         }, completionHandler: { [weak self] in
             self?.orderOut(nil)
         })
+    }
+
+    override func orderOut(_ sender: Any?) {
+        cleanupMonitor()
+        super.orderOut(sender)
+    }
+
+    private func cleanupMonitor() {
+        if let monitor = escapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeMonitor = nil
+        }
     }
 
     // MARK: - Key Handling

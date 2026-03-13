@@ -89,8 +89,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Actions
 
     private var currentPanel: FloatingPanel?
+    private var sourceApp: NSRunningApplication?
 
     @objc func activateInlina() {
+        // Remember the source app so we can return focus on Replace.
+        sourceApp = NSWorkspace.shared.frontmostApplication
+
         // IMPORTANT: Grab the selected text BEFORE showing any UI,
         // while the source app still has focus and selection is intact.
         let selectedText = getSelectedText()
@@ -228,11 +232,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pasteboard.setString(newText, forType: .string)
         print("inlina: New text copied to pasteboard")
 
-        // Hide the panel first to return focus to the source app
-        currentPanel?.dismiss()
-        
-        // Wait a bit for the panel to hide and focus to return
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        // Hide the panel immediately (no animation) so it releases focus
+        currentPanel?.orderOut(nil)
+        currentPanel = nil
+
+        // Deactivate inlina so the source app can take focus
+        NSApp.hide(nil)
+
+        // Activate the source app
+        sourceApp?.activate()
+
+        // Wait for the source app to regain focus
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             print("inlina: Simulating paste...")
             self.simulatePaste()
             

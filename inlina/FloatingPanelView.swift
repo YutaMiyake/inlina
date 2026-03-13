@@ -195,7 +195,9 @@ struct FloatingPanelView: View {
             }
         }
         .onAppear {
-            isInputFocused = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isInputFocused = true
+            }
         }
     }
 
@@ -326,7 +328,6 @@ struct FloatingPanelView: View {
 
                 Button {
                     onResult(text)
-                    onDismiss()
                 } label: {
                     Label("Replace", systemImage: "arrow.triangle.2.circlepath")
                         .font(.system(size: 12, weight: .medium))
