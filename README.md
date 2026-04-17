@@ -2,67 +2,73 @@
 
 ![inlina](inlina.png)
 
-macOS メニューバーアプリ。テキストを選択してショートカットキーを押すだけで、AI によるテキスト編集をその場で実行できます。
+A macOS menu bar app for instant AI-powered text editing. Select text in any app, press a shortcut, and edit with AI — right where you're working.
 
-## 特徴
+## Features
 
-- **どのアプリからでも使える** — テキストを選択 → ショートカットキー → AI が編集
-- **複数の AI プロバイダー対応** — OpenAI / Anthropic / Google Gemini
-- **豊富なアクション** — 文法修正、文章改善、要約、翻訳（日英）、簡略化、カスタムプロンプト
-- **フローティングパネル UI** — カーソル付近に表示、作業を中断しない設計
-- **カスタムプロンプト** — 自分だけの AI アクションを作成可能
+- **Works in any app** — select text → press shortcut → AI edits it in place
+- **Multiple AI providers** — OpenAI / Anthropic / Google Gemini with custom base URL support
+- **Custom prompts** — create your own AI actions with personalized instructions
+- **Slash search** — type `/` to quickly filter and find custom prompts
+- **Floating panel UI** — appears near your cursor, dismiss with Escape
+- **Clipboard preservation** — restores original clipboard after text replacement
 
-## 必要環境
+## Requirements
 
-- macOS 14.0 (Sonoma) 以降
+- macOS 14.0 (Sonoma) or later
 - Swift 5.9+
 - Xcode Command Line Tools
 
-## インストール
+## Installation
 
 ```bash
-# ビルド
+# Build
 ./build-app.sh
 
-# Applications にコピー
+# Copy to Applications
 cp -R inlina.app /Applications/
 ```
 
-初回起動時に **アクセシビリティ権限** の付与が必要です（システム設定 → プライバシーとセキュリティ → アクセシビリティ）。
+On first launch, grant **Accessibility permission** in System Settings → Privacy & Security → Accessibility.
 
-## 使い方
+## Usage
 
-1. メニューバーから inlina を起動
-2. 設定で **AI プロバイダー** と **API キー** を設定
-3. **キーボードショートカット** を設定
-4. 任意のアプリでテキストを選択 → ショートカットキーを押す
-5. フローティングパネルからアクションを選択
-6. 結果を「Replace」で置換、または「Copy」でコピー
+1. Launch inlina from the menu bar
+2. Open **Settings** (⌘,) and configure your AI provider and API key
+3. Set a **keyboard shortcut** in Settings → Shortcuts
+4. Select text in any app → press your shortcut
+5. Choose an action or type a custom instruction in the floating panel
+6. Click **Replace** to insert the result, or **Copy** to copy it
 
-## 対応 AI プロバイダー
+## AI Providers
 
-| プロバイダー | デフォルトモデル | カスタム URL |
-|-------------|----------------|-------------|
-| OpenAI | gpt-4o | 対応 |
-| Anthropic | claude-sonnet-4-20250514 | 対応 |
-| Google Gemini | gemini-pro | 対応 |
+| Provider | Default Model | Custom Base URL |
+|----------|---------------|-----------------|
+| OpenAI | gpt-4o | Supported |
+| Anthropic | claude-sonnet-4-20250514 | Supported |
+| Google Gemini | gemini-pro | Supported |
 
-カスタムベース URL を設定することで、Azure OpenAI やローカル LLM など任意のエンドポイントを利用できます。
+Custom base URLs let you use Azure OpenAI, local LLMs, or any compatible endpoint.
 
-## プロジェクト構成
+## Project Structure
 
 ```
 inlina/
-├── InlinaApp.swift          # アプリエントリポイント、アクセシビリティ API
-├── AIService.swift          # AI API 通信
-├── FloatingPanel.swift      # ウィンドウ管理
-├── FloatingPanelView.swift  # フローティングパネル UI
-├── SettingsView.swift       # 設定画面
-├── SettingsStore.swift      # 設定管理
-├── AIAction.swift           # AI アクション定義
+├── InlinaApp.swift          # App entry point, accessibility API, text capture
+├── AIService.swift          # AI API communication
+├── FloatingPanel.swift      # Window management
+├── FloatingPanelView.swift  # Floating panel UI
+├── SettingsView.swift       # Settings UI
+├── SettingsStore.swift      # Settings persistence
+├── AIAction.swift           # Built-in AI action definitions
 └── ...
 ```
 
-## ライセンス
+## Dependencies
+
+- [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) — global shortcut recording
+- [HotKey](https://github.com/soffes/HotKey) — global hotkey handling
+
+## License
 
 MIT
