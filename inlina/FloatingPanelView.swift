@@ -12,6 +12,7 @@ struct FloatingPanelView: View {
     @State private var errorMessage: String?
     @State private var selectedAction: AIAction?
     @FocusState private var isInputFocused: Bool
+    @FocusState private var isSourceFocused: Bool
     @ObservedObject private var settings = SettingsStore.shared
     @Environment(\.openSettings) private var openSettings
 
@@ -98,6 +99,7 @@ struct FloatingPanelView: View {
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $sourceText)
                     .font(.system(size: 12))
+                    .focused($isSourceFocused)
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
@@ -155,19 +157,13 @@ struct FloatingPanelView: View {
                     .font(.system(size: 14))
                     .frame(width: 20)
 
-                TextField("Search prompts or type an instruction...", text: $customPrompt)
+                TextField("Search prompts...", text: $customPrompt)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13))
                     .focused($isInputFocused)
                     .onSubmit {
                         handleSubmit()
                     }
-
-                if !customPrompt.isEmpty && !filteredPrompts.isEmpty {
-                    Text("⌘↩ send as instruction")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -220,7 +216,7 @@ struct FloatingPanelView: View {
                 VStack(spacing: 12) {
                     Spacer()
 
-                    Text("No custom prompts yet — type an instruction above, or")
+                    Text("No custom prompts yet")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
 
@@ -242,16 +238,13 @@ struct FloatingPanelView: View {
                     Text("No matching prompts")
                         .font(.system(size: 12))
                         .foregroundStyle(.tertiary)
-                    Text("↩ send as instruction")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.tertiary)
                     Spacer()
                 }
             }
         }
         .onAppear {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                isInputFocused = true
+                isSourceFocused = true
             }
         }
     }
@@ -361,14 +354,8 @@ struct FloatingPanelView: View {
     // MARK: - Actions
 
     private func handleSubmit() {
-        let trimmed = customPrompt.trimmingCharacters(in: .whitespaces)
-        let forceDirect = NSEvent.modifierFlags.contains(.command)
-
-        if !forceDirect, let match = filteredPrompts.first {
+        if let match = filteredPrompts.first {
             performAction(.custom(match.prompt))
-        } else if !trimmed.isEmpty {
-            // No match (or Cmd+Enter): send the input itself as the instruction
-            performAction(.custom(trimmed))
         }
     }
 

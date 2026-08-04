@@ -46,11 +46,12 @@ open /Applications/inlina.app
 |---|---|
 | `InlinaApp.swift` | エントリ。MenuBarExtra、AppDelegate(選択テキスト取得・Replace の paste 制御) |
 | `FloatingPanel.swift` | NSPanel。サイズはここと FloatingPanelView の `.frame` の**2箇所**で合わせる |
-| `FloatingPanelView.swift` | パネル UI。検索欄 + プロンプト 3 列グリッド。Enter = 先頭マッチ実行(マッチ 0 件なら入力文を直接指示として実行)、⌘Enter = 常に直接指示 |
+| `FloatingPanelView.swift` | パネル UI。ソーステキスト欄(表示時に auto-focus) + 検索欄 + プロンプト 3 列グリッド。Enter = 先頭マッチ実行。検索欄は prompts 検索専用 |
 | `SettingsView.swift` | Settings ウィンドウ(General / Shortcuts / Prompts / About) |
 | `SettingsStore.swift` | UserDefaults 永続化。`CustomPrompt` 定義もここ |
 | `AIService.swift` | OpenAI / Anthropic / Gemini 呼び出し |
 
 - パネルからの Settings 起動は `@Environment(\.openSettings)` +
   `NSApp.setActivationPolicy(.regular)` → `activate` の順(MenuBarView と同じパターン)。
-- 自由入力は一度廃止 → 同日復活(2026-08-04)。検索と両立: `handleSubmit` 参照。
+- 自由入力(検索欄の入力文を直接指示として実行)は廃止 → 復活 → 再廃止(いずれも 2026-08-04)。
+  検索欄は prompts 検索のみ。復活させる時は `handleSubmit` に直接指示の分岐を戻す。
