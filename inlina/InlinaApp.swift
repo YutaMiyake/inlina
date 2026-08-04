@@ -23,21 +23,18 @@ struct MenuBarView: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        Button("Activate inlina") {
+        Button("Open Inlina") {
             if let appDelegate = NSApp.delegate as? AppDelegate {
                 appDelegate.activateInlina()
             }
         }
-
-        Divider()
 
         Button("Settings...") {
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
             openSettings()
         }
-        .keyboardShortcut(",", modifiers: .command)
-        
+
         Divider()
         
         Button("Quit") {
@@ -50,12 +47,24 @@ struct MenuBarView: View {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // Don't restore windows (e.g. Settings) from the previous run.
+        UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.accessory)
 
+        // Close any window the system restored from the previous session.
+        DispatchQueue.main.async {
+            for window in NSApp.windows where window.styleMask.contains(.titled) {
+                window.close()
+            }
+        }
+
         setupStatusItem()
         setupKeyboardShortcut()
-        requestAccessibilityPermission()
+        logAccessibilityStatus()
     }
 
     // MARK: - Status Item
@@ -75,10 +84,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Accessibility
 
-    private func requestAccessibilityPermission() {
-        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
-        let trusted = AXIsProcessTrustedWithOptions(options)
-        if !trusted {
+    private func logAccessibilityStatus() {
+        // No prompt at launch — use Settings > General > Request Permission instead.
+        if !AXIsProcessTrusted() {
             print("inlina: Accessibility permission not yet granted. Please enable it in System Settings > Privacy & Security > Accessibility.")
         }
     }

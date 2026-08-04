@@ -1,5 +1,6 @@
 import SwiftUI
 import KeyboardShortcuts
+import ApplicationServices
 
 struct SettingsView: View {
     var body: some View {
@@ -38,6 +39,7 @@ private struct GeneralSettingsTab: View {
 
     @State private var connectionTestResult: ConnectionTestResult?
     @State private var isTesting = false
+    @State private var isAccessibilityTrusted = AXIsProcessTrusted()
 
     private enum ConnectionTestResult {
         case success
@@ -72,6 +74,31 @@ private struct GeneralSettingsTab: View {
                 }
             }
 
+            Section("Permissions") {
+                HStack {
+                    if isAccessibilityTrusted {
+                        Label("Accessibility permission granted", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    } else {
+                        Label("Accessibility permission required", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.caption)
+                    }
+
+                    Spacer()
+
+                    Button("Request Permission") {
+                        requestAccessibilityPermission()
+                    }
+                    .disabled(isAccessibilityTrusted)
+                }
+
+                Text("Required to read the selected text and paste the result. If it stops working after an update, remove inlina from the Accessibility list and add it again.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
                 HStack {
                     Button(action: testConnection) {
@@ -102,6 +129,18 @@ private struct GeneralSettingsTab: View {
         }
         .formStyle(.grouped)
         .padding()
+        .task {
+            // Poll while the tab is visible; the view re-renders on change.
+            while !Task.isCancelled {
+                isAccessibilityTrusted = AXIsProcessTrusted()
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+        }
+    }
+
+    private func requestAccessibilityPermission() {
+        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
+        isAccessibilityTrusted = AXIsProcessTrustedWithOptions(options)
     }
 
     private func testConnection() {
