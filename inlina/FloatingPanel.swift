@@ -10,7 +10,7 @@ final class FloatingPanel: NSPanel {
         self.selectedText = selectedText
 
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 160),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 380),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false

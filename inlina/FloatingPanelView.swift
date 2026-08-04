@@ -6,12 +6,21 @@ struct FloatingPanelView: View {
     let onDismiss: () -> Void
 
     @State private var customPrompt: String = ""
+    @State private var sourceText: String
     @State private var isLoading: Bool = false
     @State private var result: String?
     @State private var errorMessage: String?
     @State private var selectedAction: AIAction?
     @FocusState private var isInputFocused: Bool
     @ObservedObject private var settings = SettingsStore.shared
+    @Environment(\.openSettings) private var openSettings
+
+    init(selectedText: String?, onResult: @escaping (String) -> Void, onDismiss: @escaping () -> Void) {
+        self.selectedText = selectedText
+        self.onResult = onResult
+        self.onDismiss = onDismiss
+        _sourceText = State(initialValue: selectedText ?? "")
+    }
 
     private let brandGradient = LinearGradient(
         colors: [Color(hex: 0x667EEA), Color(hex: 0x764BA2)],
@@ -38,15 +47,13 @@ struct FloatingPanelView: View {
                     resultSection(result)
                 } else if isLoading {
                     loadingSection
-                } else if !settings.customPrompts.isEmpty {
-                    actionGridSection
                 } else {
-                    customPromptSection
+                    actionGridSection
                 }
             }
             .padding(.top, 8)
         }
-        .frame(width: 400, height: 160)
+        .frame(width: 520, height: 380)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -59,82 +66,108 @@ struct FloatingPanelView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        HStack {
-            if let text = selectedText {
+        VStack(spacing: 6) {
+            HStack {
+                Button {
+                    openSettingsWindow()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Open Settings")
+
                 Image(systemName: "text.quote")
                     .foregroundStyle(.secondary)
                     .font(.caption)
 
-                Text(text)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-            } else {
-                Image(systemName: "text.cursor")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                Spacer()
 
-                Text("No text selected")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .italic()
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
             }
 
-            Spacer()
+            // Editable source text (pre-filled with the captured selection)
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $sourceText)
+                    .font(.system(size: 12))
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
 
-            Button {
-                onDismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.tertiary)
+                if sourceText.isEmpty {
+                    Text("Type or paste the text to process...")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .allowsHitTesting(false)
+                }
             }
-            .buttonStyle(.plain)
+            .frame(height: 56)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.primary.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+            )
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.top, 4)
+        .padding(.bottom, 10)
     }
 
-    // MARK: - Slash Search
+    // MARK: - Search
 
-    private var isSlashSearch: Bool {
-        customPrompt.hasPrefix("/")
-    }
-
-    private var slashQuery: String {
-        String(customPrompt.dropFirst()).trimmingCharacters(in: .whitespaces).lowercased()
+    private var searchQuery: String {
+        var query = customPrompt
+        if query.hasPrefix("/") {
+            query = String(query.dropFirst())
+        }
+        return query.trimmingCharacters(in: .whitespaces).lowercased()
     }
 
     private var filteredPrompts: [CustomPrompt] {
-        if isSlashSearch {
-            let query = slashQuery
-            if query.isEmpty { return settings.customPrompts }
-            return settings.customPrompts.filter {
-                $0.name.lowercased().contains(query)
-            }
+        let query = searchQuery
+        if query.isEmpty { return settings.customPrompts }
+        return settings.customPrompts.filter {
+            $0.name.lowercased().contains(query)
         }
-        return settings.customPrompts
     }
 
     // MARK: - Action List
 
     private var actionGridSection: some View {
         VStack(spacing: 0) {
-            // Input field at top
+            // Search field at top
             HStack(spacing: 8) {
-                Image(systemName: isSlashSearch ? "magnifyingglass" : "wand.and.stars")
+                Image(systemName: "magnifyingglass")
                     .foregroundStyle(brandGradient)
                     .font(.system(size: 14))
                     .frame(width: 20)
 
-                TextField("Type / to search or enter instruction...", text: $customPrompt)
+                TextField("Search prompts or type an instruction...", text: $customPrompt)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13))
                     .focused($isInputFocused)
                     .onSubmit {
                         handleSubmit()
                     }
+
+                if !customPrompt.isEmpty && !filteredPrompts.isEmpty {
+                    Text("⌘↩ send as instruction")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -143,31 +176,30 @@ struct FloatingPanelView: View {
             Divider()
                 .opacity(0.3)
 
-            // Prompts list
+            // Prompts grid
             if !filteredPrompts.isEmpty {
                 ScrollView {
-                    VStack(spacing: 6) {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3),
+                        spacing: 8
+                    ) {
                         ForEach(filteredPrompts) { prompt in
                             Button {
                                 performAction(.custom(prompt.prompt))
                             } label: {
-                                HStack(spacing: 10) {
+                                VStack(spacing: 6) {
                                     Image(systemName: "sparkles")
-                                        .font(.system(size: 14))
+                                        .font(.system(size: 16))
                                         .foregroundStyle(brandGradient)
-                                        .frame(width: 20)
 
                                     Text(prompt.name.isEmpty ? "Untitled" : prompt.name)
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.system(size: 12, weight: .medium))
                                         .lineLimit(1)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundStyle(.tertiary)
+                                        .truncationMode(.tail)
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 12)
                                 .background(
                                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                                         .fill(Color.primary.opacity(0.05))
@@ -184,11 +216,34 @@ struct FloatingPanelView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 8)
                 }
-            } else if isSlashSearch {
-                VStack {
+            } else if settings.customPrompts.isEmpty {
+                VStack(spacing: 12) {
+                    Spacer()
+
+                    Text("No custom prompts yet — type an instruction above, or")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        openSettingsWindow()
+                    } label: {
+                        Label("Add prompts in Settings", systemImage: "gearshape")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                VStack(spacing: 6) {
                     Spacer()
                     Text("No matching prompts")
                         .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
+                    Text("↩ send as instruction")
+                        .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                     Spacer()
                 }
@@ -198,45 +253,6 @@ struct FloatingPanelView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isInputFocused = true
             }
-        }
-    }
-
-    // MARK: - Custom Prompt
-
-    private var customPromptSection: some View {
-        VStack {
-            Spacer()
-
-            HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .foregroundStyle(brandGradient)
-                    .font(.system(size: 14))
-
-                TextField("Ask AI anything...", text: $customPrompt)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .focused($isInputFocused)
-                    .onSubmit {
-                        guard !customPrompt.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                        performAction(.custom(customPrompt))
-                    }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.primary.opacity(0.05))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-            )
-            .padding(.horizontal, 16)
-
-            Spacer()
-        }
-        .onAppear {
-            isInputFocused = true
         }
     }
 
@@ -346,21 +362,27 @@ struct FloatingPanelView: View {
 
     private func handleSubmit() {
         let trimmed = customPrompt.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
+        let forceDirect = NSEvent.modifierFlags.contains(.command)
 
-        if isSlashSearch {
-            // Slash search: execute the first matching prompt
-            if let match = filteredPrompts.first {
-                performAction(.custom(match.prompt))
-            }
-        } else {
+        if !forceDirect, let match = filteredPrompts.first {
+            performAction(.custom(match.prompt))
+        } else if !trimmed.isEmpty {
+            // No match (or Cmd+Enter): send the input itself as the instruction
             performAction(.custom(trimmed))
         }
     }
 
+    private func openSettingsWindow() {
+        onDismiss()
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        openSettings()
+    }
+
     private func performAction(_ action: AIAction) {
-        guard let text = selectedText, !text.isEmpty else {
-            errorMessage = "No text selected"
+        let text = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else {
+            errorMessage = "No text to process"
             return
         }
 
